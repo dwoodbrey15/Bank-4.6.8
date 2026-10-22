@@ -1,0 +1,291 @@
+{
+  "schema": "banknet-small-1",
+  "version": "4.6.8",
+  "runtime": "Offline JavaScript, float32 arrays and Web Workers; no external libraries",
+  "tableSizes": {
+    "min": 2,
+    "max": 12
+  },
+  "roundLengths": [
+    10,
+    15,
+    20
+  ],
+  "parameterCount": 5762,
+  "architecture": {
+    "inputs": 88,
+    "globals": 44,
+    "sortedPublicOpponentSlots": 11,
+    "slotWidth": 4,
+    "policy": [
+      88,
+      32,
+      1
+    ],
+    "value": [
+      88,
+      32,
+      1
+    ],
+    "sharedTrainableWeights": false,
+    "outputs": [
+      "bankPolicyPreference",
+      "trainingPolicyWinShare"
+    ],
+    "actionSelection": "BANK preference >=0.5 except exact rule overrides",
+    "valuePrior": "sigmoid(logit - log(opponentCount))",
+    "initialization": "Policy first hidden unit is tanh(2*(normalizedPot-normalized300)); output weight4. Other policy output weights zero, remaining hidden weights seeded random. All weights trainable. Explicit own-action prior, not learned strength or opponent habit model."
+  },
+  "globals": [
+    "asinh(pot/100)/4",
+    "remainingRounds/20",
+    "totalRounds/20",
+    "round/20",
+    "playerCount/12",
+    "activeFraction",
+    "safePhase",
+    "asinh(rollCount)/4",
+    "normalizedOwnScore",
+    "normalizedHighestRivalGap",
+    "normalizedPotMinusStrictLeadTarget",
+    "ownActive",
+    "nextBustProbability",
+    "doublesProbability",
+    "strictLeadReachLower",
+    "strictLeadReachUpper",
+    "strictLeadReachExact",
+    "tieTargetReachLower",
+    "tieTargetReachUpper",
+    "nextDangerRollStrictLeadProbability",
+    "bankingWouldStrictlyLead",
+    "rivalsAheadFraction",
+    "activeRivalsAheadFraction",
+    "normalizedHighestActiveRivalGap",
+    "lastBankExists",
+    "rankFraction",
+    "winShareIfBustNow",
+    "normalizedHighestBankedRivalGap",
+    "finalRound",
+    "lastActive",
+    "tiedWithHighestRival",
+    "highestRivalTieFraction",
+    "fairShareBaseline",
+    "activeRivalFraction",
+    "fractionRivalsBelowBankNowScore",
+    "winShareIfEveryoneBanksCurrentPot",
+    "normalizedPotentialLeaderGap",
+    "doublePotReachLower",
+    "doublePotReachUpper",
+    "meanNormalizedRivalGap",
+    "activeRivalsTiedOrAheadFraction",
+    "logRemainingRoundsAfterThis",
+    "lastBankIsOwnSeat",
+    "reachStrictlyAheadOfBankedRivalsLower"
+  ],
+  "opponentFeatures": [
+    "normalizedScoreGap",
+    "active",
+    "normalizedBankedThisRound",
+    "slotPresent"
+  ],
+  "exactFeatures": {
+    "targetRecurrence": "h(p) = [6*h(2p) + sum(count[s]*h(p+s))]/36, h(p>=target)=1; bust contribution is zero",
+    "nonDoubleSums": [
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      11
+    ],
+    "counts": [
+      2,
+      2,
+      4,
+      4,
+      4,
+      4,
+      2,
+      2
+    ],
+    "exactTargetLimit": 2048,
+    "largerTargets": "Integer grid lower/upper bounds, approximately 512 cells",
+    "cacheEntries": 96,
+    "scoreArithmetic": "Safe integer Number, then BigInt promotion",
+    "ruleOverrides": [
+      "Final-round last-active optimal stopping",
+      "Two-player strict-lead preservation by public bank matching",
+      "Final-round strict-lead shadowing with one active rival"
+    ]
+  },
+  "training": {
+    "algorithm": "Multi-step PPO with constant-rate plain Adam",
+    "gamesPerCollection": 432,
+    "options": [
+      24,
+      36,
+      48,
+      144,
+      288,
+      432,
+      864
+    ],
+    "epochs": 2,
+    "adamSteps": "Multiple per collection across two epochs, averaging up to 1728 positions per step",
+    "learningRate": 0.001,
+    "warmupLR": null,
+    "warmupSamples": 0,
+    "warmupMinimumUpdates": 0,
+    "gaeLambda": 0.95,
+    "policyClip": 0.2,
+    "entropyCoefficient": 0.015,
+    "valueLoss": ".5 * BCE terminal win share, separate value network",
+    "teacherAnchorAfterWarmup": 0,
+    "syntheticStarts": 0.1,
+    "opponents": "Mixed tables: one featured rival, followed by a balanced weighted deck. Cautious search weight2, each other regular type weight1; a single delayed follower only once every24 games.",
+    "poolDefault": "bankbench-challenge-3",
+    "storageKey": "current-banknet-small-plain-adam-balanced-1; copies earlier plain-Adam or smaller-network saves",
+    "guards": "No KL early stopping, epoch rollback, automatic benchmark rewind, LR scale or gradient-norm clipping. Finite-number validation only.",
+    "log": "Per-update seeds, optimizer step and step count, stage, LR, KL, flips, entropy, bank frequency, guard restores, pool fingerprints, benchmark restores",
+    "noSelfPlayOrSnapshots": true,
+    "learningRateOptions": [
+      2e-05,
+      5e-05,
+      0.0001,
+      0.0003,
+      0.001,
+      0.002,
+      0.003,
+      0.005,
+      0.01,
+      0.02,
+      0.05,
+      0.1
+    ],
+    "optimizerBatchTarget": 1728,
+    "gradientMicroBatchLimit": 288,
+    "minibatches": "Global epoch shuffle with balanced sizes, independent of worker count; no discarded or tiny remainder; each sample used once per epoch",
+    "gradientAccumulation": "Sum worker gradients at identical weights and divide by actual positions once per Adam step; balanced minibatches and multiple steps per collection",
+    "optimizer": "Adam beta1=0.9 beta2=0.999 eps=1e-8, bias correction, no weight decay, no gradient-norm clipping",
+    "checkpointCompatibility": "Same weights, Adam moments, step and constant-rate PPO method as v4.6.7. Previous challenge champion/results archived, copied champion provisional on the new mix.",
+    "autoBenchmarkEvery": 4320,
+    "autoBenchmarkMinimumGames": 1800,
+    "defaultCellCoverage": "24 games per table-size/round-count cell; one follower game per cell per full cycle. Default18 cells x24 =432 games.",
+    "learningRateSelection": "Selected rate is used directly for every Adam step, including the first. No schedule, previous lrScale multiplier, warm-up or automatic reductions.",
+    "warmup": false,
+    "gradientClipping": false,
+    "klGuards": false,
+    "automaticTrainingRestore": false
+  },
+  "evaluation": {
+    "games": [
+      132,
+      660,
+      1800,
+      10000
+    ],
+    "cells": "Selected table-size range x 10/15/20 rounds; default 3\u20138 players",
+    "reference": "Original teacher heuristic; old Bank Net 2 import is compared only on the original suite",
+    "comparison": "Independent histories, graph signatures and latest reports for each suite; automatic tests always use Challenge",
+    "status": "Exploratory; suite performance is not universal game strength",
+    "defaultGames": 10000,
+    "protocols": {
+      "scripts": {
+        "id": "bankbench-46",
+        "role": "Comparison only; unchanged original fixtures, seeds, probabilities and opponent behavior; never promotes or rolls back weights"
+      },
+      "challenge": {
+        "id": "bankbench-challenge-3",
+        "role": "Model selection; fixed scenarios and paired candidate/champion fixtures, plus independent fresh confirmation",
+        "minimumRetentionGames": 1800,
+        "promote": "Paired delta lower95 > 0 in primary and fresh tests; blocked by confirmed per-scenario upper95 < -0.03",
+        "rollback": "None. Failed gains or worse results retain the saved best without modifying latest training weights, optimizer or learning rate."
+      }
+    },
+    "archive": "challenge-2 results are archived and never connected to the revised challenge-3 graph. The standalone bankbench-46 benchmark remains unchanged.",
+    "scenarioMeaning": "Each scenario groups mixed tables by one featured rival; other seats always use the same balanced regular pool. These are not isolated win rates against one opponent type."
+  },
+  "status": "Balanced-opponent plain-Adam branch. Same policy/value geometry and constant-rate PPO as v4.6.7; revised shared training/Challenge mix, unchanged standalone original scripted benchmark.",
+  "includedExample": {
+    "file": "example-checkpoint.json",
+    "trainingGames": 10800,
+    "trainingUpdates": 300,
+    "officialBenchmarkGames": 10000,
+    "officialWinShare": 0.4472122619047618,
+    "freshBenchmarkGames": 10000,
+    "freshWinShare": 0.4429510714285715,
+    "samplingHalfWidth95pp": 0.965,
+    "optimizer": "Starts fresh; trained weights retained.",
+    "claim": "Included weights are unchanged from v4.6.2; their existing scores do not establish a benefit from the new training method."
+  },
+  "opponentSuite": {
+    "id": "bankbench-challenge-3",
+    "profiles": [
+      "Original scripts",
+      "One-roll follower",
+      "Bank reactor",
+      "Probability cautious",
+      "Probability patient",
+      "Search cautious",
+      "Search patient",
+      "Score-aware leader",
+      "Probability balanced"
+    ],
+    "focalShadow": "Waits for the focal player to bank, then takes exactly one additional roll. Banks after that roll if safe, before the next roll; a bust loses its pot. Never initiates a bank. Appears as the sole follower once every 24 games.",
+    "probabilities": "Unchanged exact hitting tables where available, large-target lower bounds otherwise; search exactly enumerates all 36 danger-roll outcomes through 10 weighted branches",
+    "search": "Two-roll expectimax; fixed node bound, no wall-clock cutoff, no access to hidden dice or learner parameters; approximate public-state rival responses and end-of-round value",
+    "trainingSeeds": "Fresh per collection, separate from fixed and fresh-confirmation benchmark seeds",
+    "curriculum": "None; type weights, schedule and behavior are fixed, with fresh training seeds and randomized seats/thresholds.",
+    "delayedFollowerState": "The focal player is inactive with banked=current-round bank amount. Every safe danger roll strictly increases the pot, so pot>focal.banked identifies the next banking window without private state or hidden dice. A new round resets active and banked flags.",
+    "followerIntervalGames": 24,
+    "maximumFollowersPerTable": 1,
+    "regularWeights": {
+      "Search cautious": 2,
+      "Original scripts": 1,
+      "Bank reactor": 1,
+      "Probability cautious": 1,
+      "Probability patient": 1,
+      "Search patient": 1,
+      "Score-aware leader": 1,
+      "Probability balanced": 1
+    },
+    "backgroundDeck": [
+      5,
+      0,
+      2,
+      3,
+      5,
+      4,
+      6,
+      7,
+      8
+    ],
+    "featuredSchedule": "One follower every24 games; remaining featured rivals follow the same weighted regular deck. Background deck never contains a follower.",
+    "default432SeatCounts": {
+      "Search cautious": 428,
+      "Original scripts": 214,
+      "Bank reactor": 214,
+      "Probability cautious": 214,
+      "Probability patient": 214,
+      "Search patient": 214,
+      "Score-aware leader": 214,
+      "Probability balanced": 214,
+      "One-roll follower": 18
+    },
+    "default432FeaturedGames": {
+      "Search cautious": 92,
+      "Original scripts": 46,
+      "Bank reactor": 46,
+      "Probability cautious": 46,
+      "Probability patient": 46,
+      "Search patient": 46,
+      "Score-aware leader": 46,
+      "Probability balanced": 46,
+      "One-roll follower": 18
+    },
+    "strongestPreference": "Cautious search favored based on the lower learner win shares against the prior cautious-search scenario. This is a practical choice, not proof that it is universally strongest.",
+    "sharedDistribution": "Training and Challenge call the exact same fixture and roster generator with identical weights and follower limits, using separate seeds. Arbitrary benchmark lengths can have small quota boundary differences."
+  }
+}
